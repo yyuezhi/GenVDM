@@ -1,0 +1,19 @@
+paths:
+  voxel_dir: "./voxel/"
+  mesh_dir: "./mesh/"
+  voxel_label_dir: "./label/"
+  result_dir: "./result_patches"
+
+params:
+  dims: [1024, 1024, 1024]
+  distance_threshold: 0.01
+  num_samples: 200000
+  sub_samples: 300000
+  num_sample_points: 500000
+  smooth_iterations: 10
+  depth: 8
+  distance: 2.0
+  max_label: 10
+  smoothing_threshold: 0.05
+  repeat: 5
+  largest_component: true
