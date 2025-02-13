@@ -1,0 +1,28 @@
+
+exr_path: "./result_patches"
+base_path: "./rendering_result"
+
+# Relative subdirectories for normal/color
+normal_subdir: "render_ortho_normal"
+color_subdir: "render_ortho_color"
+
+# Rendering settings
+ORTHO_FLAG: true
+ORTHO_SCALE: 3
+
+# Rendering options
+activate_antialiasing: false
+max_amount_of_samples: 32
+resolution: 512
+
+# Random seed
+random_seed: 0
+
+
+# camera parameters
+main:
+  elevation: [0, 0, 0, 0, 0, 45, -45]
+  distance: 5.0
+  azimuth_range: [-60, -30, 0, 30, 60, 0, 0]
+  fov: 65
+  z_limit: 1.6

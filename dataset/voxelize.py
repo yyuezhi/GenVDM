@@ -2,43 +2,18 @@ import numpy as np
 import cv2
 import os
 
-
+import trimesh
 import os
 import numpy as np
 import argparse
 
-source_root = "./objs/"
-target_dir = "./objs_norm/"
 
-obj_names = os.listdir(source_root)
-obj_names = sorted(obj_names)
-
-
-def load_obj(dire):
-    fin = open(dire,'r')
-    lines = fin.readlines()
-    fin.close()
-    
-    vertices = []
-    triangles = []
-    
-    for i in range(len(lines)):
-        line = lines[i].split()
-        if len(line)==0:
-            continue
-        if line[0] == 'v':
-            x = float(line[1])
-            y = float(line[2])
-            z = float(line[3])
-            vertices.append([x,y,z])
-        if line[0] == 'f':
-            x = int(line[1].split("/")[0])
-            y = int(line[2].split("/")[0])
-            z = int(line[3].split("/")[0])
-            triangles.append([x-1,y-1,z-1])
-    
-    vertices = np.array(vertices, np.float32)
-    triangles = np.array(triangles, np.int32)
+def normalize_obj(name):
+    mesh = trimesh.load(os.path.join(source_dir,f"{name}.glb"))
+    if isinstance(mesh, trimesh.Scene):
+        mesh = trimesh.util.concatenate(mesh.dump())
+    vertices = np.array(mesh.vertices)
+    triangles = np.array(mesh.faces)
     
     #remove isolated points
     vertices_mapping = np.full([len(vertices)], -1, np.int32)
@@ -73,33 +48,21 @@ def load_obj(dire):
     vertices[:,1] = (vertices[:,1]-y_mid)/scale
     vertices[:,2] = (vertices[:,2]-z_mid)/scale
     
-    return vertices, triangles
+    mesh = trimesh.Trimesh(vertices=vertices, faces=triangles)
+    mesh.export(os.path.join(target_dir,f"{name}.obj"))
 
-def write_obj(dire, vertices, triangles):
-    fout = open(dire, 'w')
-    for ii in range(len(vertices)):
-        fout.write("v "+str(vertices[ii,0])+" "+str(vertices[ii,1])+" "+str(vertices[ii,2])+"\n")
-    for ii in range(len(triangles)):
-        fout.write("f "+str(triangles[ii,0]+1)+" "+str(triangles[ii,1]+1)+" "+str(triangles[ii,2]+1)+"\n")
-    fout.close()
-
-
-for i in range(len(obj_names)):
-    this_name = source_root + obj_names[i]
-    print(i,this_name)
-    out_name = target_dir + obj_names[i]
-    v,t = load_obj(this_name)
-    write_obj(out_name, v,t)
     
 
-target_dir = "./objs_norm/"
+source_dir = "./mesh/"
+target_dir = "./voxel/"
 
-obj_names = os.listdir(target_dir)
-obj_names = sorted(obj_names)
+obj_names = [i[:-4] for i in os.listdir(source_dir) if ".glb" in i]
+
 
 
 for i in range(len(obj_names)):
-    this_name = target_dir + obj_names[i]
+    normalize_obj(obj_names[i])
+    this_name = target_dir + f"{obj_names[i]}.obj"
     print(i,this_name)
 
     maxx = 1.0
@@ -112,3 +75,4 @@ for i in range(len(obj_names)):
     command = "./binvox -bb "+str(minx)+" "+str(miny)+" "+str(minz)+" "+str(maxx)+" "+str(maxy)+" "+str(maxz)+" "+" -d 1024 -e "+this_name
 
     os.system(command)
+    # exit(0)

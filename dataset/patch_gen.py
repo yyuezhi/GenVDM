@@ -122,73 +122,6 @@ def poisson_blending3(joint_v, joint_t, corresponding_loop_e, corresponding_vert
         joint_v[:, channel_id] = solution
     
 
-
-def load_object_trimesh(obj_path):
-    mesh = trimesh.load(obj_path)
-    if not isinstance(mesh, trimesh.base.Trimesh):
-        meshes = [geometry for geometry in mesh.geometry.values()]
-        mesh = trimesh.util.concatenate(meshes)    
-    return mesh
-
-
-
-def normalize_points(points_unnormalized):
-    bbox_scale = 1.1
-    bbox_center = (points_unnormalized.min(0).values + points_unnormalized.max(0).values) / 2.
-    bbox_len = (points_unnormalized.max(0).values - points_unnormalized.min(0).values).max()
-    points_normalized = (points_unnormalized - bbox_center) * (2 / (bbox_len * bbox_scale))
-    return points_normalized
-
-
-
-
-
-def poisson_reconstruction(mesh):
-    """
-    Samples points from a mesh and performs Poisson surface reconstruction, returning a trimesh object.
-
-    Args:
-        mesh_file (str): Path to the mesh file.
-        num_samples (int): Number of points to sample from the mesh.
-        depth (int): Depth of the Poisson reconstruction octree (controls level of detail).
-
-    Returns:
-        reconstructed_trimesh (trimesh.Trimesh): The Poisson reconstructed mesh as a trimesh object.
-    """
-    
-
-
-    # Sample points on the mesh
-    points, face_indices = mesh.sample(num_samples, return_index=True)
-
-    # Extract normals for the sampled points
-    normals = mesh.face_normals[face_indices]
-    #normals = normal_correction(points,normals)
-
-
-    # Create an Open3D point cloud from sampled points and normals
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
-    pcd.normals = o3d.utility.Vector3dVector(normals)
-
-    # Poisson reconstruction
-    print("starting poissson reconstruction")
-    mesh_poisson, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=depth)
-
-    # Convert Open3D mesh to numpy arrays
-    vertices = np.asarray(mesh_poisson.vertices)
-    faces = np.asarray(mesh_poisson.triangles)
-
-    # Create a trimesh object from the vertices and faces
-    output_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    #output_mesh.export("a.obj")
-    #trimesh.Trimesh(vertices=points).export("points.obj")
-
-    if largest_component:
-        components = output_mesh.split(only_watertight=False)
-        output_mesh = max(components, key=lambda c: len(c.faces))
-    return output_mesh
-
 def find_boundary_loops_numpy(verts, faces):
     """
     Find all boundary loops in a triangular mesh using NumPy.
@@ -537,444 +470,6 @@ def align_plane_to_xy(plane_points,mesh_verts,boundary_verts,points_in_world):
 
 
 
-def poisson_reconstruction_pymeshlab(mesh):
-    """
-    Performs Poisson surface reconstruction without adaptivity on a trimesh object,
-    using the existing normals from the input mesh.
-
-    Parameters:
-        input_mesh (trimesh.Trimesh): The input mesh with vertex normals.
-        octree_depth (int): The depth of the octree used in reconstruction (controls resolution).
-
-    Returns:
-        trimesh.Trimesh: The reconstructed mesh.
-    """
-
-    # Extract vertices and normals from the input mesh
-    points, face_indices = mesh.sample(num_samples, return_index=True)
-
-    # Extract normals for the sampled points
-    normals = mesh.face_normals[face_indices]
-
-    # Create a PyMeshLab MeshSet and add the input mesh with normals
-    ms = pymeshlab.MeshSet()
-    mesh = pymeshlab.Mesh(vertex_matrix=points, v_normals_matrix=normals)
-    ms.add_mesh(mesh, 'input_mesh')
-    # Perform Poisson reconstruction with adaptivity disabled
-    ms.apply_filter('generate_surface_reconstruction_screened_poisson',
-                    depth=depth,
-                    fulldepth=2)
-    
-    # Retrieve the reconstructed mesh
-    reconstructed_mesh = ms.current_mesh()
-
-    # Extract vertices and faces from the reconstructed mesh
-    reconstructed_vertices = reconstructed_mesh.vertex_matrix()
-    reconstructed_faces = reconstructed_mesh.face_matrix()
-
-    # Create a new trimesh object from the reconstructed data
-    output_mesh = trimesh.Trimesh(vertices=reconstructed_vertices,
-                                  faces=reconstructed_faces,
-                                  process=False)
-    
-    if largest_component:
-        components = output_mesh.split(only_watertight=False)
-        output_mesh = max(components, key=lambda c: len(c.faces))
-    return output_mesh
-
-
-def poisson_reconstruction_no_adapt(mesh, octree_depth=8,largest_component = False):
-    """
-    Performs Poisson surface reconstruction without adaptivity on a trimesh object,
-    using the existing normals from the input mesh.
-
-    Parameters:
-        input_mesh (trimesh.Trimesh): The input mesh with vertex normals.
-        octree_depth (int): The depth of the octree used in reconstruction (controls resolution).
-
-    Returns:
-        trimesh.Trimesh: The reconstructed mesh.
-    """
-
-    # Extract vertices and normals from the input mesh
-    points, face_indices = mesh.sample(num_samples, return_index=True)
-
-    # Extract normals for the sampled points
-    normals = mesh.face_normals[face_indices]
-
-    # Create a PyMeshLab MeshSet and add the input mesh with normals
-    ms = pymeshlab.MeshSet()
-    mesh = pymeshlab.Mesh(vertex_matrix=points, v_normals_matrix=normals)
-    ms.add_mesh(mesh, 'input_mesh')
-
-    # Perform Poisson reconstruction with adaptivity disabled
-    ms.apply_filter('generate_surface_reconstruction_screened_poisson',
-                    depth=octree_depth,
-                    fulldepth=octree_depth)
-
-    # Retrieve the reconstructed mesh
-    reconstructed_mesh = ms.current_mesh()
-
-    # Extract vertices and faces from the reconstructed mesh
-    reconstructed_vertices = reconstructed_mesh.vertex_matrix()
-    reconstructed_faces = reconstructed_mesh.face_matrix()
-
-    # Create a new trimesh object from the reconstructed data
-    output_mesh = trimesh.Trimesh(vertices=reconstructed_vertices,
-                                  faces=reconstructed_faces,
-                                  process=False)
-    
-    if largest_component:
-        components = output_mesh.split(only_watertight=False)
-        output_mesh = max(components, key=lambda c: len(c.faces))
-    return output_mesh
-
-
-def combine_all_meshes_into_trimesh():
-    """
-    Combines all mesh objects in the Blender scene into a single trimesh object.
-    
-    Returns:
-        trimesh.Trimesh: A single trimesh object containing all meshes in the scene.
-    """
-    all_vertices = []
-    all_faces = []
-    vertex_offset = 0
-    
-    # Get the evaluated dependency graph for modifiers and deformations
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    
-    for obj in bpy.data.objects:
-        # Only process mesh objects
-        if obj.type == 'MESH':
-            # Get the evaluated version of the object (with modifiers applied)
-            obj_eval = obj.evaluated_get(depsgraph)
-            mesh = obj_eval.to_mesh()
-            
-            # Get the object's world matrix for applying transformations
-            world_matrix = obj.matrix_world
-            
-            # Extract vertices and apply transformations
-            vertices = np.array([world_matrix @ vertex.co for vertex in mesh.vertices])
-            faces = np.array([face.vertices[:] for face in mesh.polygons])
-            
-            # Offset the faces by the current vertex count
-            faces += vertex_offset
-            
-            # Append to the global list
-            all_vertices.append(vertices)
-            all_faces.append(faces)
-            
-            # Update vertex offset
-            vertex_offset += len(vertices)
-            
-            # Free the mesh data after extraction
-            obj_eval.to_mesh_clear()
-    
-    # Combine all vertices and faces into a single array
-    combined_vertices = np.vstack(all_vertices)
-    combined_faces = np.vstack(all_faces)
-    
-    # Create the combined trimesh object
-    combined_trimesh = trimesh.Trimesh(vertices=combined_vertices, faces=combined_faces)
-    
-    return combined_trimesh
-
-
-
-def extract_largest_cluster(point_cloud, eps=0.03, min_samples=30, output_ply='colored_point_cloud_unique.ply'):
-    """
-    Identify clusters in a point cloud using DBSCAN, assign unique colors to each cluster,
-    and export the colored point cloud to a PLY file.
-
-    Parameters:
-    - point_cloud (numpy.ndarray): A NumPy array of shape (n_points, 3) representing the point cloud.
-    - eps (float): The maximum distance between two samples for them to be considered as in the same neighborhood.
-                   Default is 0.05.
-    - min_samples (int): The number of samples in a neighborhood for a point to be considered as a core point.
-                         Default is 20.
-    - output_ply (str): The filename for the output PLY file. Default is 'colored_point_cloud_unique.ply'.
-
-    Returns:
-    - largest_cluster_points (numpy.ndarray): A NumPy array containing the points in the largest cluster.
-    - colored_pcd (open3d.geometry.PointCloud): The Open3D point cloud object with colors.
-    """
-    # Validate input
-    if not isinstance(point_cloud, np.ndarray):
-        raise TypeError("point_cloud must be a NumPy array.")
-    if point_cloud.ndim != 2 or point_cloud.shape[1] != 3:
-        raise ValueError("point_cloud must be of shape (n_points, 3).")
-
-    # Perform DBSCAN clustering
-    db = DBSCAN(eps=eps, min_samples=min_samples)
-    labels = db.fit_predict(point_cloud)
-
-    # Find unique labels (clusters), ignoring noise if present (-1 label)
-    unique_labels = set(labels)
-    unique_labels.discard(-1)  # Remove noise label if present
-
-    if not unique_labels:
-        print("No clusters found.")
-        return np.array([]), None
-
-    print(f"Number of clusters found: {len(unique_labels)}")
-
-    # Generate a unique color for each cluster
-    # For a large number of clusters, we can generate random colors
-    num_clusters = len(unique_labels)
-    colors = plt.cm.get_cmap('hsv', num_clusters + 1)  # HSV colormap for distinct colors
-
-    # Assign colors to each cluster
-    label_to_color = {label: colors(idx)[:3] for idx, label in enumerate(unique_labels)}
-
-    # Assign colors to points
-    point_colors = np.zeros((point_cloud.shape[0], 3))  # Initialize to black
-    for label in unique_labels:
-        point_colors[labels == label] = label_to_color[label]
-    point_colors[labels == -1] = [0, 0, 0]  # Optional: Color noise as black
-
-
-
-    # Identify the largest cluster
-    largest_cluster_label = None
-    max_points = 0
-    for label in unique_labels:
-        num_points = np.sum(labels == label)
-        if num_points > max_points:
-            max_points = num_points
-            largest_cluster_label = label
-
-    # Extract points belonging to the largest cluster
-    largest_cluster_points = point_cloud[labels == largest_cluster_label]
-    print(f"Largest cluster label: {largest_cluster_label} with {max_points} points.")
-
-    return largest_cluster_points#, pcd
-
-
-
-def sample_filter_reconstruct(
-    mesh: trimesh.Trimesh,
-    input_points: np.ndarray,
-    distance_threshold: float = 0.03,
-    num_samples: int = 200000,
-    poisson_depth: int = 7,
-) -> o3d.geometry.TriangleMesh:
-
-    """
-    Samples points from the mesh, filters them based on distance to input point cloud,
-    computes normals, and performs Poisson reconstruction.
-
-    Parameters:
-    - mesh (trimesh.Trimesh): The input mesh.
-    - input_points (np.ndarray): The input point cloud as an (N, 3) NumPy array.
-    - distance_threshold (float): Maximum allowed distance from sampled points to input point cloud.
-    - num_samples (int): Number of points to sample from the mesh surface.
-    - poisson_depth (int): Depth parameter for Poisson reconstruction.
-
-    Returns:
-    - reconstructed_mesh (open3d.geometry.TriangleMesh): The mesh obtained from Poisson reconstruction.
-    """
-
-    # 1. Sample points on the mesh surface
-    sampled_points, face_indices = trimesh.sample.sample_surface(mesh, num_samples)
-    print(f"Sampled {len(sampled_points)} points from the mesh surface.")
-
-
-    input_points = extract_largest_cluster(input_points)
-    # Build KDTree for efficient nearest neighbor search
-    kdtree = KDTree(input_points)
-    print("Built KDTree for input point cloud.")
-
-    # Query the nearest distance for each sampled point
-    distances, _ = kdtree.query(sampled_points, k=1)
-    print("Computed distances from sampled points to input point cloud.")
-
-    # Create a mask for points within the distance threshold
-    within_threshold_mask = distances <= distance_threshold
-    filtered_points = sampled_points[within_threshold_mask]
-    filtered_face_indices = face_indices[within_threshold_mask]
-
-    ####refilter to 50000 points, first extract submesh, then sample 
-    filtered_face_indices = np.unique(filtered_face_indices)
-    submesh = mesh.submesh([filtered_face_indices] , append=True)
-    filtered_points, filtered_face_indices = trimesh.sample.sample_surface(submesh, sub_samples)
-
-
-
-    print(f"Filtered down to {len(filtered_points)} points within distance threshold {distance_threshold}.")
-
-
-
-    # 3. Calculate normals using face normals
-    # Retrieve face normals for the filtered points
-    face_normals = submesh.face_normals[filtered_face_indices]
-    # Ensure normals are unit vectors
-    normals = face_normals / np.linalg.norm(face_normals, axis=1)[:, np.newaxis]
-
-    # 4. Create an Open3D PointCloud object and Perform Poisson reconstruction
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(filtered_points)
-    pcd.normals = o3d.utility.Vector3dVector(normals)
-    print("Created Open3D PointCloud with normals.")
-
-    a = time.time()
-    print("Performing Poisson reconstruction...",poisson_depth)
-    poisson_mesh, densities = o3d.geometry.TriangleMesh.create_from_point_cloud_poisson(pcd, depth=poisson_depth)
-    print("Poisson reconstruction completed. Total time:", time.time() - a)
-
-
-    vertices = np.asarray(poisson_mesh.vertices)
-    faces = np.asarray(poisson_mesh.triangles)
-
-    # Create a trimesh object from the vertices and faces
-    reconstructed_trimesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    #reconstructed_trimesh.export("reconstructed.obj")
-    components = reconstructed_trimesh.split(only_watertight=False)
-    largest_mesh = max(components, key=lambda c: len(c.faces))
-
-    ####
-    face_centers =largest_mesh.triangles_center  # Shape: (num_faces, 3)
-    
-    # Step 2: Build a KD-Tree from the input points for efficient distance querying
-    tree = cKDTree(input_points)
-    
-    # Step 3: For each face center, check if it's within the distance_threshold from any input point
-    # The 'query_ball_point' method returns a list of lists, where each sublist contains the indices
-    # of input points within the threshold distance from the corresponding face center.
-    # We only need to know if the sublist is non-empty.
-    nearby_faces_mask = tree.query_ball_point(face_centers, r=distance_threshold, return_length=True) > 0
-    
-    # Step 4: Extract the indices of faces that are close to any input point
-    nearby_face_indices = np.nonzero(nearby_faces_mask)[0]
-
-    # Step 5: Extract the submesh consisting of the nearby faces
-    # The 'submesh' method expects a list of face index lists. Since we're extracting a single group
-    # of faces, we wrap 'nearby_face_indices' in another list.
-    submesh = largest_mesh.submesh([nearby_face_indices], append=True, repair=True)
-    return submesh
-
-
-
-def extract_outside_portion_with_buffer(mesh, boundary_vertices, buffer_distance=0.1):
-    """
-    Extract the portion of a planar mesh that lies outside a defined boundary,
-    retaining a buffer zone around the boundary.
-
-    Parameters:
-    - mesh (trimesh.Trimesh): The input planar mesh lying on z=0.
-    - boundary_vertices (numpy.ndarray): Array of shape (N, 3) defining boundary vertices on z=0.
-    - buffer_distance (float): The width of the buffer zone around the boundary polygon.
-
-    Returns:
-    - outside_mesh (trimesh.Trimesh): The mesh containing only the outside portion with buffer zone retained.
-    """
-    # Validate inputs
-    if not isinstance(mesh, trimesh.Trimesh):
-        raise TypeError("The 'mesh' parameter must be a trimesh.Trimesh object.")
-    
-    if not isinstance(boundary_vertices, np.ndarray):
-        raise TypeError("The 'boundary_vertices' must be a NumPy array.")
-    
-    if boundary_vertices.shape[1] != 3:
-        raise ValueError("The 'boundary_vertices' array must have shape (N, 3).")
-    
-    if len(boundary_vertices) < 3:
-        raise ValueError("At least three boundary vertices are required to define a polygon.")
-    
-    # Ensure all boundary vertices lie on z=0 within a tolerance
-    boundary_z = boundary_vertices[:, 2]
-    if not np.allclose(boundary_z, 0, atol=1e-6):
-        raise ValueError("All boundary vertices must lie on the z=0 plane.")
-    
-    # Extract 2D coordinates (x, y) of the boundary vertices
-    boundary_coords_2d = boundary_vertices[:, :2]
-    
-    # Create a Shapely polygon from the boundary coordinates
-    boundary_polygon = Polygon(boundary_coords_2d)
-    
-    if not boundary_polygon.is_valid:
-        boundary_polygon = boundary_polygon.buffer(0)  # Attempt to fix invalid polygon
-        if not boundary_polygon.is_valid:
-            raise ValueError("The boundary vertices do not form a valid polygon.")
-    
-    # Prepare the polygon for faster spatial operations
-    prepared_polygon = prep(boundary_polygon)
-    
-    # Create a buffer zone around the boundary polygon
-    # Buffer outward by buffer_distance to retain a ring around the boundary
-    buffer_polygon = boundary_polygon.buffer(-buffer_distance)
-    
-    # Define the final polygon to determine which faces to remove
-    # We want to remove faces strictly inside the boundary polygon
-    # Retain faces in the buffer zone and outside the boundary
-    # No need to subtract buffer_polygon from boundary_polygon as buffer is outward
-    
-    # Extract all face centroids
-    face_centroids = mesh.triangles_center  # Shape: (n_faces, 3)
-    
-    # Project centroids to 2D (x, y)
-    centroids_2d = face_centroids[:, :2]
-    
-    # Function to determine if a point is inside the boundary polygon
-    def is_inside_boundary(xy):
-        return buffer_polygon.contains(Point(xy))
-    
-    # Vectorized point-in-polygon test using list comprehension for efficiency
-    inside_flags = np.array([is_inside_boundary(xy) for xy in centroids_2d])
-    
-    # Identify faces to remove: those inside the boundary polygon
-    faces_to_remove = inside_flags
-    
-    # Identify faces to keep: those outside the boundary polygon (including buffer zone)
-    faces_outside = mesh.faces[~faces_to_remove]
-    
-    if len(faces_outside) == 0:
-        print("No faces found outside the boundary.")
-        return trimesh.Trimesh()  # Return an empty mesh
-    
-    # Create the outside mesh with retained buffer zone
-    outside_mesh = trimesh.Trimesh(vertices=mesh.vertices.copy(),
-                                   faces=faces_outside,
-                                   process=False)
-    
-    # Remove unreferenced vertices to clean up the mesh
-    outside_mesh.remove_unreferenced_vertices()
-    
-    return outside_mesh
-
-
-def preprocess_mask(mesh,points_in_world):
-
-    poisson_mesh = sample_filter_reconstruct(mesh, points_in_world,distance_threshold)
-    a = time.time()
-    boundary_loop, boundary_target_verts,plane_verts,plane_faces = boundary_vertices_projection(poisson_mesh)
-
-    print("done boundary ",time.time()-a)
-    verts = np.array(poisson_mesh.vertices)
-    faces = np.array(poisson_mesh.faces)
-    plane_verts,verts,boundary_target_verts,points_in_world = align_plane_to_xy(plane_verts,verts,boundary_target_verts,points_in_world)
-    plane_mesh = trimesh.Trimesh(vertices=plane_verts, faces=plane_faces)
-
-    a = time.time()
-    plane_mesh = extract_outside_portion_with_buffer(plane_mesh, boundary_target_verts)
-    print("done extract outside",time.time()-a)
-    boundary_loop = boundary_loop.reshape(1,-1).tolist()
-    boundary_target_verts = boundary_target_verts.reshape(1,-1,3).tolist()
-    poisson_blending3(verts, faces, boundary_loop, boundary_target_verts, force_correspondence=False)
-    print("done blending",time.time()-a)
-    modified_mesh = trimesh.Trimesh(vertices=verts, faces=faces)
-    return modified_mesh,plane_mesh,points_in_world, poisson_mesh
-
-
-
-
-
-
-
-
-
-
-
 def normalize_trimesh(mesh):
     bounding_box = mesh.bounding_box.bounds  # [min_bound, max_bound]
     # Calculate the current center and size of the bounding box
@@ -989,13 +484,6 @@ def normalize_trimesh(mesh):
     mesh.apply_scale(scale)
     
     return mesh
-
-
-
-
-
-
-
 
 
 
@@ -1286,14 +774,11 @@ def filter_voxel(voxels_pc,voxels,mesh):
     kdtree = KDTree(sample_points)
     distances, index = kdtree.query(voxels_pc, k=1)
 
-    #trimesh.Trimesh(vertices=sample_points, faces=None).export("outside_points_ref.obj")
 
     idx = distances <0.002
     voxels_pc_outside = voxels_pc[idx]
     voxel_outside = voxels[idx]
 
-
-    #trimesh.Trimesh(vertices = voxels_pc_outside, faces = None).export("outside_points_pc.obj")
     return voxel_outside,voxels_pc_outside
 
 
@@ -1321,40 +806,12 @@ def sample_filter_reconstruct2(
     Returns:
     - reconstructed_mesh (open3d.geometry.TriangleMesh): The mesh obtained from Poisson reconstruction.
     """
-
-    # trimesh.Trimesh(vertices=input_points).export("input_points.obj")
-    # exit(0)
-    # 1. Sample points on the mesh surface
-    # sampled_points, face_indices = trimesh.sample.sample_surface(mesh, num_samples)
-    # print(f"Sampled {len(sampled_points)} points from the mesh surface.")
+    tree = cKDTree(input_points)
+    face_centers =np.array(mesh.triangles_center)
+    nearby_faces_mask = np.nonzero(tree.query_ball_point(face_centers, r=0.05, return_length=True) > 0)[0]
+    submesh = mesh.submesh([nearby_faces_mask], append=True, repair=True)
 
 
-    # input_points = extract_largest_cluster(input_points)
-    # # Build KDTree for efficient nearest neighbor search
-    # kdtree = KDTree(input_points)
-    # print("Built KDTree for input point cloud.")
-
-    # # Query the nearest distance for each sampled point
-    # distances, _ = kdtree.query(sampled_points, k=1)
-    # print("Computed distances from sampled points to input point cloud.")
-
-    # # Create a mask for points within the distance threshold
-    # within_threshold_mask = distances <= distance_threshold
-    # filtered_points = sampled_points[within_threshold_mask]
-    # filtered_face_indices = face_indices[within_threshold_mask]
-
-    # #mesh.export("this_mesh.obj")
-    # trimesh.Trimesh(vertices=filtered_points, faces=None).export("filtered_points_before.obj")
-    # filtered_points, filter_indices = inside_out(mesh,filtered_points)
-    # trimesh.Trimesh(vertices=filtered_points, faces=None).export("filtered_points_after.obj")
-    # filtered_face_indices = filtered_face_indices[filter_indices]
-    # ####refilter to 50000 points, first extract submesh, then sample 
-    # filtered_face_indices = np.unique(filtered_face_indices)
-    # submesh = mesh.submesh([filtered_face_indices] , append=True)
-    # print("submesh",submesh,filtered_face_indices.shape)
-    _,_,filtered_face_indices = trimesh.proximity.closest_point(mesh,input_points)
-    submesh = mesh.submesh([filtered_face_indices] , append=True)
-    submesh.export("submesh.obj")
     filtered_points, filtered_face_indices = trimesh.sample.sample_surface(submesh, sub_samples)
     filtered_points, filter_indices = inside_out(mesh,filtered_points)
     filtered_face_indices = filtered_face_indices[filter_indices]
@@ -1375,7 +832,7 @@ def sample_filter_reconstruct2(
     # Ensure normals are unit vectors
     normals = face_normals / np.linalg.norm(face_normals, axis=1)[:, np.newaxis]
 
-    trimesh.Trimesh(vertices=filtered_points, faces=None).export("poisson_points.obj")
+
     # 4. Create an Open3D PointCloud object and Perform Poisson reconstruction
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(filtered_points)
@@ -1393,7 +850,6 @@ def sample_filter_reconstruct2(
 
     # Create a trimesh object from the vertices and faces
     reconstructed_trimesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    reconstructed_trimesh.export("reconstructed.obj")
     components = reconstructed_trimesh.split(only_watertight=False)
     largest_mesh = max(components, key=lambda c: len(c.faces))
 
@@ -1522,16 +978,7 @@ def generate_plane_mesh(loop_vertices):
     outer_polygon = Polygon(boundary[:, :2])
     inner_polygon = Polygon(loop_vertices[:, :2])
     
-    #print(loop_vertices.shape)
-    #trimesh.Trimesh(vertices=loop_vertices).export("loop_vertices.obj")
-    # Validate polygons
-    # if not outer_polygon.is_valid:
-    #     raise ValueError("The outer boundary polygon is invalid.")
-    # if not inner_polygon.is_valid:
-    #     raise ValueError("The inner loop polygon is invalid.")
-    # if not outer_polygon.contains(inner_polygon):
-    #     raise ValueError("The inner loop must be entirely within the outer boundary.")
-    
+
     # Create a polygon with a hole (the loop)
     polygon_with_hole = Polygon(outer_polygon.exterior.coords, [inner_polygon.exterior.coords])
     
@@ -1651,11 +1098,8 @@ def form_new_loop_BFS(A, filtered_B):
         end = B_list[(i + 1) % len(B_list)]  # Wrap around for loop closure
         
         path = bfs_shortest_path(A_set, start, end)
-        # path_np = np.array(path)
-        # cut_voxels = convert_to_pc(path_np)
-        # trimesh.Trimesh(vertices=cut_voxels).export(f"./cut_voxel.obj")
-        # print(path)
-        # exit(0)
+
+        
         if path is None:
             print(f"No path found between {start} and {end}.")
             return None
@@ -1821,7 +1265,6 @@ def merge_meshes(instance_mesh, plane_mesh, boundary_loop):
     plane_faces = np.array(plane_mesh.faces)
     instance_faces = np.array(instance_mesh.faces)
 
-    trimesh.Trimesh(vertices=instance_verts, faces=instance_faces).export('insp.obj')
     map_dict = {}
     counter = 0
     not_visited_map = dict()
@@ -1860,11 +1303,8 @@ def merge_meshes(instance_mesh, plane_mesh, boundary_loop):
 def mesh_remesh(verts,faces, face_indices):
     ms = pymeshlab.MeshSet()
     ms.add_mesh(pymeshlab.Mesh(verts, faces), "original_mesh")
-    # condition = " || ".join([f"fi == {i}" for i in face_indices])
-    # print(face_indices.shape)
-    # ms.apply_filter('compute_selection_by_condition_per_face', condselect=condition)
-    # selected_face_count = ms.current_mesh().selected_face_number()
-    # print(f"Selected {selected_face_count} faces for remeshing.")
+
+
     ms.meshing_isotropic_explicit_remeshing(targetlen = pymeshlab.PercentageValue(0.75))
     processed_mesh = ms.current_mesh()
     updated_vertices = np.array(processed_mesh.vertex_matrix())
@@ -1907,44 +1347,50 @@ def save_ply(filename, verts, faces, vert_attributes):
     print(f"PLY file saved as '{filename}'.")
 
 def process_voxel(mesh,voxels,single_voxel_label):
+    num_components, connected_components = count_connected_components(dims, voxels)
+    connected_components.sort(key=len, reverse=True)
+    voxels = connected_components[0]
+
     ####voxel extraction
     filtered_voxel_surface_loop = filter_voxel_B(voxels, single_voxel_label)
     print("original voxel", single_voxel_label.shape[0],"now voxel",filtered_voxel_surface_loop.shape[0])
     new_loop = form_new_loop_BFS(voxels, filtered_voxel_surface_loop)
+    new_loop_pc = convert_to_pc(new_loop)
     print("new_loop voxel", len(new_loop),"old_loop voxel",len(single_voxel_label))
-    # cut_voxels = convert_to_pc(voxels)
-    #trimesh.Trimesh(vertices=cut_voxels).export(f"./orig_voxels.obj")
-    voxels = remove_neighboring_voxels(voxels,new_loop, delta=3)
+
+    for level_detail in range(0, 5):
+        tryvoxels = remove_neighboring_voxels(voxels,new_loop, delta=level_detail)
+        num_components, connected_components = count_connected_components(dims, tryvoxels)
+        connected_components.sort(key=len, reverse=True)
+        for i in range(min(5,len(connected_components))):
+            print(f"Connected component {i}: {len(connected_components[i])} voxels")
+        if len(connected_components) < 2:
+            continue
+        try_world_pc = convert_to_pc(np.array(connected_components[1]))
+        if try_world_pc.shape[0] > 1500 or (np.linalg.norm(np.mean(try_world_pc, axis=0) - np.mean(new_loop_pc,axis = 0)) < 0.1 and try_world_pc.shape[0] > 100):
+            voxels = tryvoxels
+            break
+    else: 
+        raise ValueError("can not find connected component")
     a = time.time()
-    # cut_voxels = convert_to_pc(voxels)
-    # trimesh.Trimesh(vertices=cut_voxels).export(f"./cut_voxels.obj")
-    # cut_voxels = convert_to_pc(single_voxel_label)
-    # trimesh.Trimesh(vertices=cut_voxels).export(f"./original_loop.obj")
-    # cut_voxels = convert_to_pc(filtered_voxel_surface_loop)
-    # trimesh.Trimesh(vertices=cut_voxels).export(f"./surface_loop.obj")
-    # cut_voxels = convert_to_pc(new_loop)
-    # trimesh.Trimesh(vertices=cut_voxels).export(f"./after_loop.obj")
-    # exit(0)
+
+
     num_components, connected_components = count_connected_components(dims, voxels)
 
     print(time.time()-a, "in count_connected_components")
     print(f"Found {num_components} connected components in the voxel grid.")
-    # exit(0)
     # sort connected components by size, larger to smaller
     connected_components.sort(key=len, reverse=True)
-    for i in range(len(connected_components)):
+    for i in range(min(5,len(connected_components))):
         print(f"Connected component {i}: {len(connected_components[i])} voxels")
     ###the second largest connected component
 
     ####3sample filter reconstruct
     a = time.time()
     points_in_world = convert_to_pc(np.array(connected_components[1]))
-    #trimesh.Trimesh(vertices=points_in_world).export(f"./points_in_world.obj")
-    #mesh.export(f"./basemesh.obj")
     poisson_mesh = sample_filter_reconstruct2(mesh, points_in_world, pre_distance_threshold=0.01,after_distance_threshold=0.01)
 
-    poisson_mesh.export(f"./poisson_mesh.obj")
-    exit(0)
+
     print("sample_filter_reconstruct",time.time()-a)
 
 
@@ -1959,22 +1405,16 @@ def process_voxel(mesh,voxels,single_voxel_label):
     print("done boundary ",time.time()-a)
 
     #####poisson blending#######
-    #trimesh.Trimesh(vertices=verts, faces=faces).export(f"./align_mesh.obj")
     a = time.time()
     boundary_loop = boundary_loop.reshape(1,-1).tolist()
     boundary_target_verts = boundary_target_verts.reshape(1,-1,3).tolist()
     poisson_blending3(verts, faces, boundary_loop, boundary_target_verts, force_correspondence=False)
-    #trimesh.Trimesh(vertices=verts, faces=faces).export(f"./blend_mesh.obj")
     print("blending")
     verts,faces = pymeshlab_smoothing(verts,faces)
     instance_mesh = trimesh.Trimesh(vertices=verts, faces=faces)
     print("done blending",time.time()-a)
 
     ####extract plane mesh
-    # a = time.time()
-    # plane_mesh = generate_plane_mesh(verts[boundary_loop][0])
-    # print("done extract outside",time.time()-a)
-    # return modified_mesh,plane_mesh,points_in_world, poisson_mesh
     a = time.time()
     augment_meshes = []
     boundary_loop = np.array(boundary_loop)[0]
@@ -2005,7 +1445,7 @@ def process_voxel(mesh,voxels,single_voxel_label):
 if __name__ == "__main__":
 
     # 1. Load your config
-    config = OmegaConf.load("config/config.yaml")
+    config = OmegaConf.load("config/preprocess.yaml")
 
     # 2. Extract paths
     voxel_dir = config.paths.voxel_dir
@@ -2014,7 +1454,7 @@ if __name__ == "__main__":
     result_dir = config.paths.result_dir
 
     # 3. Extract hyper-parameters
-    dims = config.params.dims
+    dims = tuple(config.params.dims)
     distance_threshold = config.params.distance_threshold
     num_samples = config.params.num_samples
     sub_samples = config.params.sub_samples
@@ -2034,7 +1474,7 @@ if __name__ == "__main__":
     # 5. Create name_list
     name_list = [ i[: i.find("_label")] for i in os.listdir(voxel_label_dir) if i.endswith("_labels.npz") ]
     name_list = [ name for name in name_list if os.path.exists(os.path.join(voxel_dir, name + ".binvox")) ]
-    name_list = [ name for name in name_list if os.path.exists(os.path.join(mesh_dir, name[8:] + ".glb")) ]
+    name_list = [ name for name in name_list if os.path.exists(os.path.join(mesh_dir, name + ".glb")) ]
 
     print("Total:", len(name_list)) 
     name_list = [name for name in name_list if not glob.glob(f"{result_dir}/{name}_*_arg0.ply")]
@@ -2056,7 +1496,7 @@ if __name__ == "__main__":
 
         # ----- load mesh
         try:
-            mesh = trimesh.load(os.path.join(mesh_dir, name[8:] + ".glb"))
+            mesh = trimesh.load(os.path.join(mesh_dir, name + ".glb"))
             if isinstance(mesh, trimesh.Scene):
                 mesh = trimesh.util.concatenate(mesh.dump())
             mesh = normalize_trimesh(mesh)
