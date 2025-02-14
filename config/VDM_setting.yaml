@@ -1,0 +1,32 @@
+# config.yaml
+
+# Frequencies, directories, etc.
+frequency: [0, 1200]
+output_base_dir: "./outputVDM"
+validate_vdm_dim: 1024
+validate_mesh_dim: 500
+num_boundary_points: 1000
+num_concentric_points: 4000
+
+circle_radius: 0.9
+radius_delta_boundary: 0.1
+radius_delta_blend: 0.1
+
+margin_ratio: 0.8
+plane_bound: 0.45
+z_cut_ratio: 0.96
+extract_epoch: 1500
+CUT_FLAG: true
+
+# Model/training hyperparameters
+num_iters: 1200
+hidden_dim: 256
+n_layers: 8
+grid_size: 400
+lr: 0.0005
+mlp: "leakyrelu"
+residual_layer_index: 4
+
+# Boundary weights
+boundary_weight_interval: [0.5, 0.6, 1.0]  # This will be scaled by num_iters
+boundary_weight: [0.0, 10, 10]

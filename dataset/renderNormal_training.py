@@ -994,7 +994,7 @@ if __name__ == "__main__":
         #############normal rendering
         render_image(azimuth_range,elevation,distance,brush_name)
         reset_scene()
-        exit(0)
+
 
 
 

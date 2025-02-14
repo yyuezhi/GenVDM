@@ -3,3 +3,9 @@ dataset/label
 dataset/mesh
 dataset/rendering_result
 dataset/result_patches
+instant-nsr-pl/runs
+instant-nsr-pl/exp
+logs
+*.pyc
+checkpoints
+mvoutput
