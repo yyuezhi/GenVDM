@@ -75,4 +75,3 @@ for i in range(len(obj_names)):
     command = "./binvox -bb "+str(minx)+" "+str(miny)+" "+str(minz)+" "+str(maxx)+" "+str(maxy)+" "+str(maxz)+" "+" -d 1024 -e "+this_name
 
     os.system(command)
-    # exit(0)

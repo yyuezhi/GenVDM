@@ -1,6 +1,7 @@
 dataset/voxel
 dataset/label
 dataset/mesh
+dataset/build
 dataset/rendering_result
 dataset/result_patches
 instant-nsr-pl/runs
