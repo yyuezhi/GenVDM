@@ -1,6 +1,8 @@
 # GenVDM
 Pytorch implementation of [[CVPR 2025] GenVDM:Generating Vector Displacement Maps From a Single Image](www.google.com)  [Yuezhi Yang](https://yyuezhi.github.io/), [Qimin Chen](https://qiminchen.github.io/), [Vladimir G. Kim](http://www.vovakim.com/), [Siddhartha Chaudhuri](https://www.cse.iitb.ac.in/~sidch/), [Qixing Huang](https://www.cs.utexas.edu/~huangqx/), [Zhiqin Chen](https://czq142857.github.io/)
 
+<img src='asset/Teaser.png' />
+
 ### [Paper](www.google.com)  |  [Project page](www.google.com)
 
 ## Citation
@@ -13,7 +15,7 @@ If you find our work useful in your research, please consider citing:
   year={2025},
 }
 ```
-<img src='asset/Teaser.png' />
+
 
 ## Environment
 Please install the environment by running:
