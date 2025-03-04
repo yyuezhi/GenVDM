@@ -1,7 +1,7 @@
 # GenVDM
 Pytorch implementation of [[CVPR 2025] GenVDM:Generating Vector Displacement Maps From a Single Image](www.google.com)  [Yuezhi Yang](https://yyuezhi.github.io/), [Qimin Chen](https://qiminchen.github.io/), [Vladimir G. Kim](http://www.vovakim.com/), [Siddhartha Chaudhuri](https://www.cse.iitb.ac.in/~sidch/), [Qixing Huang](https://www.cs.utexas.edu/~huangqx/), [Zhiqin Chen](https://czq142857.github.io/)
 
-<img src='asset/Teaser.png' />
+<img src="asset/Teaser.png" style="width:400px;" />
 
 ### [Paper](www.google.com)  |  [Project page](www.google.com)
 
@@ -47,3 +47,7 @@ To train the network, please put rendered images in ./dataset/rendering_result
 ```
 python train.py --base config/example_run.yaml --gpus 0,1,2,3,4,5,6,7 --num_nodes 1
 ```
+
+## Interactive Modeling
+You can download demo.blend and directly load our output .exr file under brush image section to play around VDM in blender. An example VDM has been loaded for you.
+You can learn VDM related blender instruction from [here](https://docs.blender.org/manual/en/3.5/sculpt_paint/sculpting/tools/draw.html#vdm-displacement) and [here](https://www.blender.org/download/releases/3-5/).
