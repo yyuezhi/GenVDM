@@ -51,3 +51,8 @@ python train.py --base config/example_run.yaml --gpus 0,1,2,3,4,5,6,7 --num_node
 ## Interactive Modeling
 You can download demo.blend and directly load our output .exr file under brush image section to play around VDM in blender. An example VDM has been loaded for you.
 You can learn VDM related blender instruction from [here](https://docs.blender.org/manual/en/3.5/sculpt_paint/sculpting/tools/draw.html#vdm-displacement) and [here](https://www.blender.org/download/releases/3-5/).
+
+## Acknowledgement
+We have borrow codes from the following repositories. Many thanks to the authors for sharing their codes.
+- Wonder3D[https://github.com/xxlong0/Wonder3D]
+- InstantMesh[https://github.com/TencentARC/InstantMesh]

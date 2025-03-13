@@ -1,3 +1,5 @@
+#NOTICE: This file has been modified by Adobe Inc. 2024-2025
+
 import numpy as np
 import torch
 import torch.nn as nn

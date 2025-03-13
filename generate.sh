@@ -15,6 +15,8 @@ python inference.py --base config/"${EXPNAME}.yaml" \
 # # 2) Run sparse view reconstruction
 cd instant-nsr-pl
 
+# Remove any file extension from IMGNAME
+IMGNAME="${IMGNAME%.*}"
 python launch.py --config configs/example_run.yaml \
                  --gpu 0 \
                  --train dataset.root_dir=../mvoutput/"${EXPNAME}"/ \
@@ -22,7 +24,6 @@ python launch.py --config configs/example_run.yaml \
 
 # 3) Run VDM Generation
 cd ../
-
 python extract_VDM.py --base_name "${IMGNAME}" \
                       --exp_name "${EXPNAME}"
 

@@ -1,3 +1,5 @@
+#Copyright 2024-2025 Adobe Inc.
+
 import os
 import sys
 
@@ -508,7 +510,6 @@ def scale_mesh2(mesh,specail_z_verts):
 
     verts = verts + np.array([0, 0,  - z_value_new])# -0.05
     mesh = trimesh.Trimesh(vertices=verts, faces=np.array(mesh.faces))
-    mesh.export(f"{cfg.save_dir}/after.obj")
     return mesh
 
 

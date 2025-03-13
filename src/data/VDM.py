@@ -1,3 +1,5 @@
+#Copyright 2024-2025 Adobe Inc.
+
 import os
 import json
 import numpy as np

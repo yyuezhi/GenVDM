@@ -1,3 +1,5 @@
+#Copyright 2024-2025 Adobe Inc.
+
 import os, sys
 import argparse
 from omegaconf import OmegaConf
@@ -9,6 +11,7 @@ import torch
 import numpy as np
 from PIL import Image
 from datetime import datetime
+import torch.nn.functional as F
 
 @rank_zero_only
 def rank_zero_print(*args):
@@ -59,15 +62,7 @@ def get_parser(**parser_kwargs):
     )
     return parser
 
-def prepare_batch_data(cond_imgs):
-    # prepare stable diffusion input
-    # (B, C, H, W)
-    cond_imgs = cond_imgs.to("cuda")
 
-    # random resize the condition image
-    cond_size = np.random.randint(128, 513)
-    cond_imgs = v2.functional.resize(cond_imgs, cond_size, interpolation=3, antialias=True).clamp(0, 1)
-    return cond_imgs
 
 def make_mask(image):
     #given an image, turn white color to its alpha channel
@@ -78,49 +73,75 @@ def make_mask(image):
     return image
 
 
+
 def attach_gray_center_square(
     img: torch.Tensor,
     alpha_channel: torch.Tensor,
     ratio: float = 0.8,
-    gray_value: int = 0.5
+    gray_value: float = 0.5,
+    margin: float = 0.8  # The foreground's max dimension will be margin * square_side
 ) -> torch.Tensor:
-
+    # Check that the image has 3 channels.
+    assert img.ndim == 3 and img.shape[0] == 3, "Expected input of shape [3, H, W]."
     
-    # Ensure we have 3 channels
-    assert img.ndim == 3 and img.shape[0] == 3, \
-           "Expected input of shape [3, H, W]."
-
-    # Clone so we don't modify input in-place
-    output = img.clone()
-
+    # Create an output image with a white background.
+    output = torch.ones_like(img)
     _, H, W = img.shape
-    # Determine the size of the centered square
-    square_side = int(min(H, W) * ratio)
 
-    # Coordinates for the centered square
-    left   = (W - square_side) // 2
-    right  = left + square_side
-    top    = (H - square_side) // 2
+    # Compute the dimensions and location of the centered square.
+    square_side = int(min(H, W) * ratio)
+    left = (W - square_side) // 2
+    top = (H - square_side) // 2
+    right = left + square_side
     bottom = top + square_side
 
-    # 1) Identify background pixels by summing across R,G,B
-    #    and checking against the background_threshold
-    #    => background_mask is shape (H, W)
-    fill_mask = ( alpha_channel == 0)
-
-    # 2) Create a mask for the centered square region
-    #    => region_mask is shape (H, W), True for pixels inside the square
-    region_mask = torch.zeros((H, W), dtype=torch.bool, device=img.device)
-    region_mask[top:bottom, left:right] = True
-
-    # 3) Combine them: we only fill with gray where it's background AND inside the square
-    fill_mask = fill_mask & region_mask
-
-    # 4) Assign gray_value to those pixels in each channel
+    # Fill the centered square with gray.
     for c in range(3):
-        output[c][fill_mask] = gray_value
+        output[c, top:bottom, left:right] = gray_value
+
+    # --- Extract the foreground bounding box from the alpha channel ---
+    fg_mask = (alpha_channel != 0)
+    if fg_mask.sum() == 0:
+        # If no foreground, return the white image with a gray center.
+        return output
+
+    ys, xs = torch.where(fg_mask)
+    y_min, y_max = int(ys.min()), int(ys.max())
+    x_min, x_max = int(xs.min()), int(xs.max())
+    fg_height = y_max - y_min + 1
+    fg_width = x_max - x_min + 1
+
+    # --- Compute the scale factor so that the foreground's maximum dimension equals margin * square_side ---
+    scale_factor = (margin * square_side) / max(fg_width, fg_height)
+
+    # --- Extract and rescale the foreground crop and its alpha mask ---
+    fg_crop = img[:, y_min:y_max+1, x_min:x_max+1]
+    fg_alpha_crop = alpha_channel[y_min:y_max+1, x_min:x_max+1]
+
+    new_fg_width = max(1, int(fg_width * scale_factor))
+    new_fg_height = max(1, int(fg_height * scale_factor))
+    
+    fg_crop_scaled = F.interpolate(fg_crop.unsqueeze(0), size=(new_fg_height, new_fg_width),
+                                   mode='bilinear', align_corners=False).squeeze(0)
+    fg_alpha_scaled = F.interpolate(fg_alpha_crop.unsqueeze(0).unsqueeze(0).float(),
+                                    size=(new_fg_height, new_fg_width),
+                                    mode='nearest').squeeze(0).squeeze(0)
+    
+    # --- Determine placement: center the (scaled) foreground within the gray square ---
+    center_x = left + square_side // 2
+    center_y = top + square_side // 2
+    paste_left = center_x - new_fg_width // 2
+    paste_top = center_y - new_fg_height // 2
+
+    # --- Composite the foreground over the gray square ---
+    for c in range(3):
+        region = output[c, paste_top:paste_top+new_fg_height, paste_left:paste_left+new_fg_width]
+        region[fg_alpha_scaled > 0] = fg_crop_scaled[c][fg_alpha_scaled > 0]
 
     return output
+
+
+
 
 def load_im( path, color=[1.0,1.0,1.0]):
     pil_img = Image.open(path)
@@ -137,7 +158,6 @@ def load_im( path, color=[1.0,1.0,1.0]):
     image = attach_gray_center_square(image, alpha[0],ratio=0.7)
     
     image = image.contiguous().float()
-    image = prepare_batch_data(image)
     image = image.to("cuda")
     return image
     
@@ -154,11 +174,11 @@ if __name__ == "__main__":
     
 
     logdir = os.getcwd()
-
+    no_ext_name = name.split(".")[0]
     outputexpdir = os.path.join(logdir, "mvoutput",exp_name)
     if not os.path.exists(outputexpdir):
         os.makedirs(outputexpdir,exist_ok=True)
-    outputdir = os.path.join(logdir, "mvoutput",exp_name,name)
+    outputdir = os.path.join(logdir, "mvoutput",exp_name,no_ext_name)
     if not os.path.exists(outputdir):
         os.makedirs(outputdir,exist_ok=True)
     checkpointdir = os.path.join(logdir, "checkpoints",exp_name)
@@ -181,14 +201,15 @@ if __name__ == "__main__":
     
 
 
-    data_path = f"./input/{name}.png"
+    data_path = f"./input/{name}"
+
 
 
     if not os.path.exists(outputdir):
         os.makedirs(outputdir)
     img = load_im(data_path)
     img = v2.functional.to_pil_image(img)
-    img.save(os.path.join(outputdir,f"{name}_input.png"))
+    img.save(os.path.join(outputdir,f"{no_ext_name}_input.png"))
 
 
     latent = model.pipeline(img, num_inference_steps=75, output_type='latent').images
@@ -208,6 +229,6 @@ if __name__ == "__main__":
         sub_image = image_list[i]
         sub_image = make_mask(sub_image)
         sub_image_pil = Image.fromarray(sub_image.numpy())
-        sub_image_pil.save(os.path.join(outputdir, f"normals_{name}_{index[i]}.png"))
+        sub_image_pil.save(os.path.join(outputdir, f"normals_{no_ext_name}_{index[i]}.png"))
 
 ### python inference.py --base config/example_run.yaml --resume example.ckpt --prompt ear2
