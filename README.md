@@ -38,7 +38,7 @@ bash generate.sh <image name> <exp name> <checkpoint name>
 
 For example:
 ```
-bash generate.sh ear2 example_run example
+bash generate.sh ear3.png example_run example
 ```
 Notice that your image has to be in png format RGBA image. The object needs to lie in the center of the image. See example images in ./input as an example
 
@@ -54,5 +54,5 @@ You can learn VDM related blender instruction from [here](https://docs.blender.o
 
 ## Acknowledgement
 We have borrow codes from the following repositories. Many thanks to the authors for sharing their codes.
-- Wonder3D[https://github.com/xxlong0/Wonder3D]
-- InstantMesh[https://github.com/TencentARC/InstantMesh]
+- [Wonder3D](https://github.com/xxlong0/Wonder3D)
+- [InstantMesh](https://github.com/TencentARC/InstantMesh)
