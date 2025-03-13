@@ -3,7 +3,7 @@ Pytorch implementation of [[CVPR 2025] GenVDM:Generating Vector Displacement Map
 
 <img src="asset/Teaser.png" style="width:400px;" />
 
-### [Paper](www.google.com)  |  [Project page](www.google.com)
+### [Paper](https://www.arxiv.org/abs/2503.00605)  |  [Project page](https://yyuezhi.github.io/GenVDM/)
 
 ## Citation
 If you find our work useful in your research, please consider citing:
