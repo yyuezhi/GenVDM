@@ -13,5 +13,5 @@ mvoutput
 outputVDM
 batch_execute.py
 clip_similarity_calculation
-*.txt
 exp.py
+selected_input

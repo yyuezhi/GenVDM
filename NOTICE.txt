@@ -1,0 +1,15 @@
+Copyright 2024-2025 Adobe Inc.
+ 
+This project contains software from multiple sources.
+ 
+0_RT.txt, 1_RT.txt, 2_RT.txt, 3_RT.txt, 4_RT.txt, 5_RT.txt, 6_RT.txt, VDM.py, extract_VDM.py, and inference.py are from Adobe, Copyright 2024-2025 Adobe Inc. 
+
+train.py was initially from the InstantMesh project (https://github.com/TencentARC/InstantMesh), Copyright (c) 2023 Tencent Inc. These files have been modified by Adobe Inc.
+
+ortho.py, geometry.py, and launch.py were initially from the Wonder3D project (https://github.com/xxlong0/Wonder3D/tree/main), Copyright (c) 2025 xxlong0. These files have been modified by Adobe Inc. Wonder3D is licensed under the MIT License:
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

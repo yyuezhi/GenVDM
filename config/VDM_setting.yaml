@@ -1,7 +1,7 @@
 # config.yaml
 
 # Frequencies, directories, etc.
-frequency: [0, 1200]
+frequency: [0, 1500]
 output_base_dir: "./outputVDM"
 validate_vdm_dim: 1024
 validate_mesh_dim: 500
@@ -19,10 +19,10 @@ extract_epoch: 1500
 CUT_FLAG: true
 
 # Model/training hyperparameters
-num_iters: 1200
+num_iters: 1500
 hidden_dim: 256
 n_layers: 8
-grid_size: 400
+grid_size: 500
 lr: 0.0005
 mlp: "leakyrelu"
 residual_layer_index: 4

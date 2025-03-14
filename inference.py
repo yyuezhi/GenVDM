@@ -79,7 +79,7 @@ def attach_gray_center_square(
     alpha_channel: torch.Tensor,
     ratio: float = 0.8,
     gray_value: float = 0.5,
-    margin: float = 0.8  # The foreground's max dimension will be margin * square_side
+    margin: float = 0.65  # The foreground's max dimension will be margin * square_side
 ) -> torch.Tensor:
     # Check that the image has 3 channels.
     assert img.ndim == 3 and img.shape[0] == 3, "Expected input of shape [3, H, W]."
