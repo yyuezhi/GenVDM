@@ -210,7 +210,7 @@ if __name__ == "__main__":
     
 
 
-    data_path = f"./selected_input/{name}"
+    data_path = f"./input/{name}"
 
 
 
