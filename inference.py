@@ -60,6 +60,13 @@ def get_parser(**parser_kwargs):
         default="",
         help="image prompt name",
     )
+
+    parser.add_argument(
+        "--background",
+        type=bool,
+        default=True,
+        help="image prompt name",
+    )
     return parser
 
 
@@ -155,7 +162,8 @@ def load_im( path, color=[1.0,1.0,1.0]):
     alpha  = torch.from_numpy(alpha).permute(2, 0, 1).contiguous().float()
     image = v2.functional.resize(image, 512, interpolation=3, antialias=True).clamp(0, 1)
     alpha = v2.functional.resize(alpha, 512, interpolation=3, antialias=True).clamp(0, 1)
-    image = attach_gray_center_square(image, alpha[0],ratio=0.7)
+    if BACKGROUND:
+        image = attach_gray_center_square(image, alpha[0],ratio=0.7)
     
     image = image.contiguous().float()
     image = image.to("cuda")
@@ -171,6 +179,7 @@ if __name__ == "__main__":
     exp_name = opt.base.split("/")[-1].split(".")[0]
     prompt = opt.prompt + datetime.now().strftime("-%Y%m%d-%H%M%S")
     name = opt.prompt
+    BACKGROUND = opt.background
     
 
     logdir = os.getcwd()
@@ -201,7 +210,7 @@ if __name__ == "__main__":
     
 
 
-    data_path = f"./input/{name}"
+    data_path = f"./selected_input/{name}"
 
 
 

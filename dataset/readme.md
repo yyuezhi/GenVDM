@@ -1,7 +1,7 @@
 # Dataset for GenVDM
 
 ## Ready to use dataset
-Please visit [] to download our dataset, which contains approximately 1200 VDM shapes.
+Please visit [huggingface](https://huggingface.co/datasets/yzyang/VDM_Dataset) to download our dataset, which contains approximately 1200 VDM shapes.
 
 ## Create your own VDM data
 To install preprocessing environment:

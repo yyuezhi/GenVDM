@@ -26,7 +26,7 @@ bash install_env.sh
 ## Pre-trained weights and Datasets
 We provide the pre-trained network weights. Please put it in ./checkpoints/example_run directory.
 
-- [GenVDM checkpoint](www.google.com)
+- [GenVDM checkpoint](https://huggingface.co/datasets/yzyang/VDM_Dataset)
 
 Please see dataset directory for instruction on how to download dataset and how to make your own data
 
