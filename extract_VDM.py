@@ -670,7 +670,7 @@ def main(cfg):
             mesh.export(f"{cfg.save_dir}/{base_name}_{i}.obj")
             uv= zero_validate_input_grid[:,:2].cpu().detach().numpy() /2 + 0.5
             verts = validate_vertices.cpu().detach().numpy()
-            mesh2VDM(verts, uv,f"{cfg.save_dir}/{base_name}_{i}.exr")
+            mesh2VDM(verts, uv,f"{cfg.save_dir}/{base_name}.exr")
             print("successfully saved mesh and VDM")
             # exit(0)
 
