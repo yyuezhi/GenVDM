@@ -20,6 +20,8 @@ If you find our work useful in your research, please consider citing:
 ## Environment
 Please install the environment by running:
 ```
+conda create -n GenVDM python=3.10 -y
+conda activate GenVDM
 bash install_env.sh
 ```
 
@@ -38,7 +40,7 @@ bash generate.sh <image name> <exp name> <checkpoint name>
 
 For example:
 ```
-bash generate.sh ear3.png example_run example
+bash generate.sh ear2.png example_run example
 ```
 Notice that your image has to be in png format RGBA image. The object needs to lie in the center of the image. See example images in ./input as an example
 
@@ -49,7 +51,8 @@ python train.py --base config/example_run.yaml --gpus 0,1,2,3,4,5,6,7 --num_node
 ```
 
 ## Interactive Modeling
-You can download demo.blend and directly load our output .exr file to play around VDM in blender 3.6. An example VDM has been loaded for you.
+You can download demo.blend and precomputed result from ./demo or directly load *.exr file from outputVDM directory to play around VDM. An example VDM has been loaded for you. We highly recomend to use blender 3.6 to open demo.blend since higher version might cause loading errors.
+
 You can learn VDM related blender instruction from [here](https://docs.blender.org/manual/en/3.5/sculpt_paint/sculpting/tools/draw.html#vdm-displacement) and [here](https://www.blender.org/download/releases/3-5/).
 
 ## Acknowledgement

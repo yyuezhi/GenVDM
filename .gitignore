@@ -8,7 +8,6 @@ instant-nsr-pl/runs
 instant-nsr-pl/exp
 logs
 *.pyc
-checkpoints
 mvoutput
 outputVDM
 batch_execute.py

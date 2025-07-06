@@ -1,6 +1,7 @@
 pytorch-lightning==2.1.2
 gradio==3.41.2
 huggingface-hub
+numpy==1.23
 einops
 omegaconf
 torchmetrics

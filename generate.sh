@@ -12,7 +12,7 @@ python inference.py --base config/"${EXPNAME}.yaml" \
                     --resume "${CHECKPOINT}.ckpt"  \
                     --prompt "${IMGNAME}"
 
-# # 2) Run sparse view reconstruction
+# 2) Run sparse view reconstruction
 cd instant-nsr-pl
 
 # Remove any file extension from IMGNAME
